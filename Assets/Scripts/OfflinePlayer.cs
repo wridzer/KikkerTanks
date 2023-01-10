@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class OfflinePlayer : MonoBehaviour, IDamageble
+public class OfflinePlayer : MonoBehaviour
 {
     [Header("Player Settings")]
     [SerializeField] private float health;
@@ -28,8 +28,8 @@ public class OfflinePlayer : MonoBehaviour, IDamageble
     {
         Health = health;
         lineRenderer = GetComponent<LineRenderer>();
-        lineRenderer.startWidth = 1;
-        lineRenderer.endWidth = 100f;
+        lineRenderer.startWidth = 10;
+        lineRenderer.endWidth = 1000f;
         lineRenderer.positionCount = 2;
         lineRenderer.SetPosition(0, launchPoint.transform.position);
     }

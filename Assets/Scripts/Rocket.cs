@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
-public class Rocket : MonoBehaviour
+public class Rocket : NetworkBehaviour
 {
     [SerializeField] private float damage, damageModifier, range;
     [SerializeField] private GameObject explosionPrefab;
@@ -26,15 +27,17 @@ public class Rocket : MonoBehaviour
     private void OnCollisionEnter2D(Collision2D collision)
     {
         Destroy(this.gameObject);
-        Explode(collision.contacts[0].point);
+        ExplodeServerRpc(collision.contacts[0].point);
     }
 
-    private void Explode(Vector3 _pos)
+    [ServerRpc]
+    private void ExplodeServerRpc(Vector3 _pos)
     {
         //player take damage (damge = damage - distmodifier^distance)
         GameObject explosion = Instantiate(explosionPrefab);
         explosion.transform.position = new Vector3(_pos.x, _pos.y, -1);
         explosion.transform.localScale = new Vector3(range, range, range);
+        explosion.GetComponent<NetworkObject>().Spawn(true);
 
         RaycastHit2D[] hit;
 
@@ -42,7 +45,7 @@ public class Rocket : MonoBehaviour
         foreach (RaycastHit2D raycastHit in hit)
         {
             Debug.Log(raycastHit.transform.name);
-            raycastHit.collider.GetComponent<IDamageble>()?.TakeDamage(damage);
+            raycastHit.collider.GetComponent<IDamageble>()?.TakeDamageClientRpc(damage);
         }
     }
 }

@@ -1,8 +1,9 @@
 ﻿using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 
 
-public class Explosion : MonoBehaviour
+public class Explosion : NetworkBehaviour
 {
     [SerializeField] private float explosionTime = 0.5f;
     private float size;

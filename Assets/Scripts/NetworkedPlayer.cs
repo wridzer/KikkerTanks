@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using Unity.Netcode;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -32,6 +33,7 @@ namespace ChatClientExample
         [SerializeField] private float moveSpeed;
         [SerializeField] private GameObject bulletPrefab;
         [SerializeField] private GameObject launchPoint;
+        [SerializeField] private TMP_Text healthText;
         [SerializeField] private SpawnPointsInfo spawnPoints;
 
         private LineRenderer lineRenderer;
@@ -48,6 +50,7 @@ namespace ChatClientExample
         {
             base.OnNetworkSpawn();
             Health = health;
+            HealthClientRpc();
             lineRenderer = GetComponent<LineRenderer>();
             lineRenderer.startWidth = 0.1f;
             lineRenderer.endWidth = 10f;
@@ -100,8 +103,6 @@ namespace ChatClientExample
                     mouseX = aimPos.x,
                     mouseY = aimPos.y,
                 }, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-
-            
         }
 
         private float GetPower()
@@ -143,19 +144,13 @@ namespace ChatClientExample
             lineAlphaEnd = 0;
             Vector2 newRot = (Input.mousePosition - launchPoint.transform.position).normalized;
             SpawnServerRpc(newRot.x, newRot.y, _power);
-
-            //GameObject rocket = Instantiate(
-            //    bulletPrefab,
-            //    launchPoint.transform.position,
-            //    Quaternion.identity,
-            //    this.transform
-            //    );
-            //rocket.GetComponent<Rigidbody2D>().AddForce(newRot * _power);
         }
 
-        public void TakeDamage(float _Damage)
+        [ClientRpc]
+        public void TakeDamageClientRpc(float _Damage)
         {
             Health -= _Damage;
+            HealthClientRpc();
             Debug.Log(Health);
             if (Health <= 0)
             {
@@ -180,6 +175,12 @@ namespace ChatClientExample
                 );
             rocket.GetComponent<Rigidbody2D>().AddForce(newRot * _power);
             rocket.GetComponent<NetworkObject>().Spawn(true);
+        }
+
+        [ClientRpc]
+        private void HealthClientRpc()
+        {
+            healthText.text = Health.ToString();
         }
     }
 

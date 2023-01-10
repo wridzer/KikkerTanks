@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 
 
@@ -6,5 +7,6 @@ public interface IDamageble
 {
     float Health { get; set; }
 
-    void TakeDamage(float _Damage);
+    [ClientRpc]
+    void TakeDamageClientRpc(float _Damage);
 }
