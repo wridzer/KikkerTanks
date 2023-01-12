@@ -60,15 +60,19 @@ namespace ChatClientExample
             transform.position = spawnPoints.spawnPointList[(int)OwnerClientId];
             if((int)OwnerClientId > (spawnPoints.spawnPointList.Count * 0.5f) - 1f)
             {
-                transform.localRotation = Quaternion.Euler(0, -175f, 0);
+                transform.GetComponent<SpriteRenderer>().flipX= true;
             }
         }
+
+        
 
         // Update is called once per frame
         void Update()
         {
+            HealthClientRpc();
+
             // Check if client is object owner
-            if(!IsOwner) return;
+            if (!IsOwner) return;
 
             aimPos = Input.mousePosition;
 
@@ -151,7 +155,6 @@ namespace ChatClientExample
         {
             Health -= _Damage;
             HealthClientRpc();
-            Debug.Log(Health);
             if (Health <= 0)
             {
                 Die();
