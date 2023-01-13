@@ -25,6 +25,8 @@ namespace ChatClientExample
 
     public class NetworkedPlayer : NetworkBehaviour, IDamageble
     {
+        public bool isTurn;
+
         [Header("Player Settings")]
         [SerializeField] private float health;
         [SerializeField] private float minPower;
@@ -73,6 +75,7 @@ namespace ChatClientExample
 
             // Check if client is object owner
             if (!IsOwner) return;
+            if (!isTurn) return;
 
             aimPos = Input.mousePosition;
 
@@ -148,6 +151,7 @@ namespace ChatClientExample
             lineAlphaEnd = 0;
             Vector2 newRot = (Input.mousePosition - launchPoint.transform.position).normalized;
             SpawnServerRpc(newRot.x, newRot.y, _power);
+            NetworkManager.transform.GetComponent<GameManager>().NextPlayer(OwnerClientId);
         }
 
         [ClientRpc]
