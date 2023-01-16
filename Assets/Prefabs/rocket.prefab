@@ -126,6 +126,7 @@ MonoBehaviour:
   damage: 10
   damageModifier: 0.01
   range: 100
+  lifeTime: 5
   explosionPrefab: {fileID: 4525647531319757799, guid: 2a19eb37d3bc9f149848c9e6c4b6465c, type: 3}
 --- !u!70 &7081842893453837626
 CapsuleCollider2D:

@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class Rocket : NetworkBehaviour
 {
-    [SerializeField] private float damage, damageModifier, range;
+    [SerializeField] private float damage, damageModifier, range, lifeTime = 5;
     [SerializeField] private GameObject explosionPrefab;
     private Rigidbody2D rb;
 
@@ -22,11 +22,16 @@ public class Rocket : NetworkBehaviour
         Vector2 dir = v2Pos + rb.velocity.normalized;
         float angle = Mathf.Atan2(dir.y - v2Pos.y, dir.x - v2Pos.x) * 180 / Mathf.PI;
         transform.localRotation = Quaternion.Euler(0, 0, angle + -90);
+        lifeTime -= Time.deltaTime;
+        if(lifeTime <= 0)
+        {
+            DestroyServerRpc();
+        }
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        Destroy(this.gameObject);
+        DestroyServerRpc();
         ExplodeServerRpc(collision.contacts[0].point);
     }
 
@@ -47,5 +52,11 @@ public class Rocket : NetworkBehaviour
             Debug.Log(raycastHit.transform.name);
             raycastHit.collider.GetComponent<IDamageble>()?.TakeDamageClientRpc(damage);
         }
+    }
+
+    [ServerRpc]
+    private void DestroyServerRpc()
+    {
+        NetworkObject.Destroy(gameObject);
     }
 }

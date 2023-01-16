@@ -64,6 +64,10 @@ namespace ChatClientExample
             {
                 transform.GetComponent<SpriteRenderer>().flipX= true;
             }
+            if(IsOwner)
+            {
+                CheckNumberOfPlayersServerRpc();
+            }
         }
 
         
@@ -74,8 +78,7 @@ namespace ChatClientExample
             HealthClientRpc();
 
             // Check if client is object owner
-            if (!IsOwner) return;
-            if (!isTurn) return;
+            if (!IsOwner || !isTurn) return;
 
             aimPos = Input.mousePosition;
 
@@ -151,7 +154,8 @@ namespace ChatClientExample
             lineAlphaEnd = 0;
             Vector2 newRot = (Input.mousePosition - launchPoint.transform.position).normalized;
             SpawnServerRpc(newRot.x, newRot.y, _power);
-            NetworkManager.transform.GetComponent<GameManager>().NextPlayer(OwnerClientId);
+            //NetworkManager.transform.GetComponent<GameManager>().NextPlayerServerRpc(OwnerClientId);
+            NextPlayerServerRpc(NetworkManager.LocalClientId);
         }
 
         [ClientRpc]
@@ -188,6 +192,63 @@ namespace ChatClientExample
         private void HealthClientRpc()
         {
             healthText.text = Health.ToString();
+        }
+
+        //GameManager
+
+        [SerializeField] private int numberOfPlayers;
+        private int playerIndex = 0;
+
+        [ServerRpc]
+        private void CheckNumberOfPlayersServerRpc()
+        {
+            if (NetworkManager.ConnectedClients.Count != numberOfPlayers) { Debug.Log("not enough players yet, number of player is: " + NetworkManager.ConnectedClients.Count); return; }
+
+            // StartGame
+            ulong startPlayerI = NetworkManager.ConnectedClientsIds[playerIndex];
+            NetworkManager.ConnectedClients[startPlayerI].PlayerObject.GetComponent<NetworkedPlayer>().isTurn = true;
+        }
+
+        [ServerRpc]
+        public void NextPlayerServerRpc(ulong clientId)
+        {
+            NetworkManager.ConnectedClients[clientId].PlayerObject.GetComponent<NetworkedPlayer>().isTurn = false;
+            playerIndex = playerIndex +1 % numberOfPlayers;
+            ulong nextPlayerI = NetworkManager.ConnectedClientsIds[playerIndex];
+            SetPlayersActiveClientRpc(NetworkManager.ConnectedClients[nextPlayerI].ClientId);
+        }
+
+        [ClientRpc]
+        private void SetPlayersActiveClientRpc(ulong _selectedPlayer)
+        {
+            foreach (var player in NetworkManager.ConnectedClients)
+            {
+                if(player.Key== _selectedPlayer)
+                {
+                    player.Value.PlayerObject.GetComponent<NetworkedPlayer>().isTurn = true;
+                } else
+                {
+                    player.Value.PlayerObject.GetComponent<NetworkedPlayer>().isTurn = false;
+                }
+            }
+            //    Debug.Log("selected: " + _selectedPlayer + " ownerID: " + OwnerClientId + " network: " + NetworkManager.LocalClientId);
+            //if(NetworkManager.LocalClientId == _selectedPlayer)
+            //{
+            //    Debug.Log("selected: " + _selectedPlayer + " network: " + NetworkManager.LocalClientId);
+            //    isTurn= true;
+            //    Debug.Log("isturn: " + isTurn);
+            //} else
+            //{
+            //    Debug.Log("!!!selected: " + _selectedPlayer + " network: " + NetworkManager.LocalClientId);
+            //    isTurn= false;
+            //}
+
+            //loop players and set selected active
+            //foreach (var player in NetworkManager.ConnectedClients)
+            //{
+            //    if (player.Value.PlayerObject.transform == _selectedPlayer) { player.Value.PlayerObject.GetComponent<NetworkedPlayer>().isTurn = true; }
+            //    else { player.Value.PlayerObject.GetComponent<NetworkedPlayer>().isTurn = false; }
+            //}
         }
     }
 

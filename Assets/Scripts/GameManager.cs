@@ -7,30 +7,40 @@ using UnityEngine;
 public class GameManager : NetworkBehaviour
 {
     [SerializeField] private int numberOfPlayers;
-    [SerializeField]  private NetworkManager netManager;
     private int playerIndex = 0;
 
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
-        CheckNumberOfPlayers();
     }
 
-    private void CheckNumberOfPlayers()
+    [ServerRpc]
+    private void CheckNumberOfPlayersServerRpc()
     {
-        if(netManager.ConnectedClients.Count != numberOfPlayers) { return; }
+        if(NetworkManager.ConnectedClients.Count != numberOfPlayers) { Debug.Log("not enough players yet, number of player is: " + NetworkManager.ConnectedClients.Count); return; }
 
         // StartGame
-        ulong startPlayerI = netManager.ConnectedClientsIds[playerIndex];
-        netManager.ConnectedClients[startPlayerI].PlayerObject.GetComponent<NetworkedPlayer>().isTurn = true;
-        Debug.Log(netManager.ConnectedClients[startPlayerI].PlayerObject);
+        ulong startPlayerI = NetworkManager.ConnectedClientsIds[playerIndex];
+        NetworkManager.ConnectedClients[startPlayerI].PlayerObject.GetComponent<NetworkedPlayer>().isTurn = true;
+        Debug.Log(NetworkManager.ConnectedClients[startPlayerI].PlayerObject);
         Debug.Log(playerIndex);
     }
 
-    public void NextPlayer(ulong clientId)
+    [ServerRpc]
+    public void NextPlayerServerRpc(ulong clientId)
     {
-        netManager.ConnectedClients[clientId].PlayerObject.GetComponent<NetworkedPlayer>().isTurn = false;
-        ulong nextPlayerI = netManager.ConnectedClientsIds[playerIndex++];
-        netManager.ConnectedClients[nextPlayerI].PlayerObject.GetComponent<NetworkedPlayer>().isTurn = true;
+        NetworkManager.ConnectedClients[clientId].PlayerObject.GetComponent<NetworkedPlayer>().isTurn = false;
+        ulong nextPlayerI = NetworkManager.ConnectedClientsIds[playerIndex++];
+        SetPlayersActive(NetworkManager.ConnectedClients[nextPlayerI].PlayerObject.transform);
+    }
+
+    private void SetPlayersActive(Transform _selectedPlayer)
+    {
+        //loop players and set selected active
+        foreach(var player in NetworkManager.ConnectedClients)
+        {
+            if(player.Value.PlayerObject.transform ==  _selectedPlayer) { player.Value.PlayerObject.GetComponent<NetworkedPlayer>().isTurn = true; }
+            else { player.Value.PlayerObject.GetComponent<NetworkedPlayer>().isTurn = false; }
+        }
     }
 }

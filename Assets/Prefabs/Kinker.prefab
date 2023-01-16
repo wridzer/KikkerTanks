@@ -461,6 +461,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5381cb3aa2ee9f64292b6cbb79b23ee3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isTurn: 0
   health: 100
   minPower: 7500
   maxPower: 35000
@@ -470,6 +471,7 @@ MonoBehaviour:
   launchPoint: {fileID: 8942259228202109707}
   healthText: {fileID: 6011730576775581779}
   spawnPoints: {fileID: 11400000, guid: f533ddc240f4a3a40b1e45819ac0f202, type: 2}
+  numberOfPlayers: 2
 --- !u!114 &-1764229952633752049
 MonoBehaviour:
   m_ObjectHideFlags: 0

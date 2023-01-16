@@ -21,7 +21,13 @@ public class Explosion : NetworkBehaviour
 
         if (size <= 0.1)
         {
-            Destroy(gameObject);
+            DestroyServerRpc();
         }
+    }
+
+    [ServerRpc]
+    private void DestroyServerRpc()
+    {
+        NetworkObject.Destroy(gameObject);
     }
 }
