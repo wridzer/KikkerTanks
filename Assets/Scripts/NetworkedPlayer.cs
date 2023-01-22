@@ -1,14 +1,7 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Security.Cryptography;
 using TMPro;
 using Unity.Netcode;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.EventSystems;
-
-
 
 public struct InputUpdate : INetworkSerializable
 {
@@ -25,7 +18,7 @@ public struct InputUpdate : INetworkSerializable
 
 public class NetworkedPlayer : NetworkBehaviour, IDamageble
 {
-    public bool isTurn;
+    [HideInInspector] public bool isTurn;
 
     [Header("Player Settings")]
     [SerializeField] private float health;
@@ -44,6 +37,7 @@ public class NetworkedPlayer : NetworkBehaviour, IDamageble
     private float lineAlphaEnd = 0;
     private float power;
     private bool alphaGoingUp = true;
+    private int gameEnded = 0;
 
     public float Health { get; set; }
 
@@ -60,21 +54,21 @@ public class NetworkedPlayer : NetworkBehaviour, IDamageble
         lineRenderer.SetPosition(0, launchPoint.transform.position);
 
         transform.position = spawnPoints.spawnPointList[(int)OwnerClientId];
-        if((int)OwnerClientId > (spawnPoints.spawnPointList.Count * 0.5f) - 1f)
+        if ((int)OwnerClientId > (spawnPoints.spawnPointList.Count * 0.5f) - 1f)
         {
-            transform.GetComponent<SpriteRenderer>().flipX= true;
+            transform.GetComponent<SpriteRenderer>().flipX = true;
             launchPoint.transform.localPosition = new Vector3(
                 launchPoint.transform.localPosition.x * -1,
                 launchPoint.transform.localPosition.y,
                 launchPoint.transform.localPosition.z);
         }
-        if(IsOwner)
+        if (IsOwner)
         {
             CheckNumberOfPlayersServerRpc();
         }
     }
 
-        
+
 
     // Update is called once per frame
     void Update()
@@ -86,7 +80,7 @@ public class NetworkedPlayer : NetworkBehaviour, IDamageble
 
         aimPos = Input.mousePosition;
 
-        Vector3 moveDir= Vector3.zero;
+        Vector3 moveDir = Vector3.zero;
 
         if (Input.GetKey(KeyCode.A)) moveDir.x = -1f;
         if (Input.GetKey(KeyCode.D)) moveDir.x = +1f;
@@ -168,16 +162,16 @@ public class NetworkedPlayer : NetworkBehaviour, IDamageble
         HealthClientRpc();
         if (Health <= 0)
         {
-            Die();
+            if (IsOwner) GetScoresServerRpc();
         }
     }
 
-    private void Die()
+    private void EndGame(float _score)
     {
-        Destroy(gameObject);
+        FindObjectOfType<NetworkUI>().EndGame(_score);
     }
 
-    [ServerRpc]
+    [ServerRpc(RequireOwnership = false)]
     private void SpawnServerRpc(float rotX, float rotY, float _power)
     {
         Vector2 newRot = new Vector2(rotX, rotY);
@@ -201,7 +195,7 @@ public class NetworkedPlayer : NetworkBehaviour, IDamageble
 
     [SerializeField] private int numberOfPlayers;
 
-    [ServerRpc]
+    [ServerRpc(RequireOwnership = false)]
     private void CheckNumberOfPlayersServerRpc()
     {
         if (NetworkManager.ConnectedClients.Count != numberOfPlayers) { Debug.Log("not enough players yet, number of player is: " + NetworkManager.ConnectedClients.Count); return; }
@@ -211,7 +205,7 @@ public class NetworkedPlayer : NetworkBehaviour, IDamageble
         NetworkManager.ConnectedClients[startPlayerI].PlayerObject.GetComponent<NetworkedPlayer>().isTurn = true;
     }
 
-    [ServerRpc]
+    [ServerRpc(RequireOwnership = false)]
     public void NextPlayerServerRpc(ulong clientId)
     {
         NetworkManager.ConnectedClients[clientId].PlayerObject.GetComponent<NetworkedPlayer>().isTurn = false;
@@ -223,9 +217,52 @@ public class NetworkedPlayer : NetworkBehaviour, IDamageble
     [ClientRpc]
     private void SetPlayersActiveClientRpc(ulong _id)
     {
-        if(_id == NetworkManager.LocalClientId)
+        if (_id == NetworkManager.LocalClientId)
         {
             NetworkManager.LocalClient.PlayerObject.GetComponent<NetworkedPlayer>().isTurn = true;
         } else { NetworkManager.LocalClient.PlayerObject.GetComponent<NetworkedPlayer>().isTurn = false; }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void GetScoresServerRpc()
+    {
+        foreach (var clientId in NetworkManager.ConnectedClientsIds)
+        {
+            Debug.Log(clientId);
+            float score = NetworkManager.ConnectedClients[clientId].PlayerObject.GetComponent<NetworkedPlayer>().health;
+            foreach (var otherClientId in NetworkManager.ConnectedClientsIds)
+            {
+                if (otherClientId != clientId)
+                {
+                    score += (100f - NetworkManager.ConnectedClients[otherClientId].PlayerObject.GetComponent<NetworkedPlayer>().health);
+                }
+            }
+            SetScoreClientRpc(clientId, score);
+        }
+
+        StartCoroutine(WaitForEndGame(3)); // need to wait for clientRPC to finish
+    }
+
+    [ClientRpc]
+    private void SetScoreClientRpc(ulong _id, float _score)
+    {
+        if (_id == NetworkManager.LocalClientId)
+        {
+            if (_score == 0) { _score = -1; } // Minimum score of 1
+            Debug.Log(_score + " : " + _id);
+            NetworkManager.LocalClient.PlayerObject.GetComponent<NetworkedPlayer>().EndGame(_score);
+        }
+    }
+
+    [ClientRpc]
+    private void ShutdownClientRpc()
+    {
+        NetworkManager.Singleton.Shutdown();
+    }
+
+    private IEnumerator WaitForEndGame(int sec)
+    {
+        yield return new WaitForSeconds(sec);
+        ShutdownClientRpc();
     }
 }

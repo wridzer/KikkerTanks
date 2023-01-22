@@ -49,7 +49,6 @@ public class Rocket : NetworkBehaviour
         hit = Physics2D.CircleCastAll(_pos, range, Vector3.zero);
         foreach (RaycastHit2D raycastHit in hit)
         {
-            Debug.Log(raycastHit.transform.name);
             raycastHit.collider.GetComponent<IDamageble>()?.TakeDamageClientRpc(damage);
         }
     }
